@@ -1,0 +1,25 @@
+# Python / Django
+*.pyc
+__pycache__/
+venv/
+*.log
+db.sqlite3
+instance/
+*.pot
+*.mo
+
+# Environment variables
+.env
+
+# Media files (user uploads) - Optional, depends if you want backups
+media/
+
+# IDE / Editor specific
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db

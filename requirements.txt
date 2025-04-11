@@ -1,0 +1,11 @@
+Django>=4.0,<5.0
+celery>=5.0
+redis>=4.0
+requests>=2.20
+pillow>=9.0
+pytesseract>=0.3.8
+opencv-python-headless>=4.5
+google-generativeai>=0.4
+python-dotenv>=0.20
+gunicorn # Optional
+eventlet>=0.35 # Add this line for Windows Celery worker

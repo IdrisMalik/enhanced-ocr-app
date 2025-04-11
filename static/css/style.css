@@ -1,0 +1,8 @@
+/* You can add custom non-Bootstrap styles here if needed */
+body {
+    padding-bottom: 50px; /* Add some padding at the bottom */
+}
+
+.result-text {
+     font-size: 0.9rem; /* Slightly smaller font for text output */
+}

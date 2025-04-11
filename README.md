@@ -1,169 +1,122 @@
-# Django Enhanced OCR with Gemini AI
+# Django Enhanced OCR Application
 
 ## Overview
 
-This project is a Django web application designed for Optical Character Recognition (OCR) on uploaded images. It utilizes PyTesseract for initial text extraction and enhances the accuracy and structural understanding using Google's Gemini Pro Vision multimodal AI model. The application supports batch image uploads, processes them asynchronously using Celery and Redis, and provides a user-friendly interface to view the original image alongside the final extracted text.
+This project is a web application built with Django that performs Optical Character Recognition (OCR) on uploaded images. It utilizes PyTesseract for initial text extraction and integrates with the Google Gemini API for multimodal analysis to enhance the accuracy and structural understanding of the extracted text. The application processes uploads asynchronously using Celery and provides a user interface for batch image uploads and viewing results.
 
-## Key Features
+## Features
 
-*   **Batch Image Upload:** Upload multiple images simultaneously via a drag-and-drop interface or file selector.
-*   **Standardized Preprocessing:** Images are preprocessed using OpenCV (grayscale, adaptive thresholding) for optimized OCR performance.
-*   **Dual-Engine OCR:**
-    *   Initial fast OCR using PyTesseract.
-    *   AI-powered enhancement using Google Gemini API to analyze image layout, correct errors, and improve text structure.
-*   **Asynchronous Processing:** Long-running OCR and AI tasks are handled in the background using Celery workers, preventing UI blocking. Redis is used as the message broker and result backend.
-*   **Side-by-Side Preview:** View the original uploaded image next to the final, enhanced text output.
-*   **Result Actions:** Easily copy the extracted text to the clipboard or download it as a `.txt` file.
-*   **Status Tracking:** Real-time feedback on the processing status of each image (Pending, Processing, Completed, Failed).
-*   **Modular Django Structure:** Organized codebase following Django best practices (`core` app, `services.py`, Celery tasks).
-*   **Environment Configuration:** Securely manage settings and API keys using a `.env` file.
+*   **Image Upload**: Supports single or multiple image file uploads via a drag-and-drop interface or file selection.
+*   **Image Preprocessing**: Applies standard image preprocessing techniques (grayscale conversion, thresholding) using OpenCV and Pillow to optimize images for OCR.
+*   **OCR Engine**: Uses PyTesseract to extract text content from the preprocessed images.
+*   **AI Enhancement**: Leverages the Google Gemini multimodal model to analyze the original image alongside the initial OCR output, correcting errors and improving layout/structure recognition.
+*   **Asynchronous Processing**: Offloads OCR and AI analysis tasks to a Celery queue (with Redis as a broker/backend) for non-blocking background processing.
+*   **Result Display**: Presents the final, enhanced text output side-by-side with the original uploaded image.
+*   **User Interface**: Provides a clean web interface built with Django templates and JavaScript for interaction, including status updates via polling and options to copy or download the extracted text.
 
 ## Technology Stack
 
-*   **Backend:** Python 3.10+, Django 4.x
-*   **OCR:** Tesseract-OCR, PyTesseract
-*   **Image Processing:** OpenCV (opencv-python-headless), Pillow
-*   **AI Enhancement:** Google Generative AI SDK (`google-generativeai`), Gemini Pro Vision API
-*   **Asynchronous Tasks:** Celery, Redis (as Broker & Result Backend)
-*   **Task Execution (Windows):** Eventlet
-*   **Environment Variables:** python-dotenv
-*   **Frontend:** HTML, CSS (Bootstrap 5), JavaScript (Vanilla JS for uploads & polling)
-*   **Database:** SQLite (default, configurable in Django settings)
-*   **WSGI Server (Development):** Django Development Server
-
-## Prerequisites
-
-Before setting up the project, ensure you have the following installed on your Windows 11 system:
-
-1.  **Python:** Version 3.10 or newer. Download from [python.org](https://www.python.org/) and ensure it's added to your system PATH during installation.
-2.  **Tesseract-OCR:**
-    *   Download the installer from the [Tesseract GitHub Wiki](https://github.com/UB-Mannheim/tesseract/wiki) (e.g., `tesseract-ocr-w64-setup-*.exe`).
-    *   **Important:** During installation, ensure you select the option to **add Tesseract to the system PATH**.
-    *   Verify the installation path (e.g., `C:\Program Files\Tesseract-OCR`).
-    *   Verify installation by opening PowerShell and running `tesseract --version`.
-3.  **Docker Desktop:** Required for running the Redis container easily. Download from [Docker Hub](https://www.docker.com/products/docker-desktop/).
-4.  **Git (Optional):** For cloning the repository.
-
-## Setup Instructions (Windows 11 / PowerShell)
-
-1.  **Clone or Download:** Get the project code:
-    ```powershell
-    # If using Git
-    git clone <repository_url> django_ocr_project
-    cd django_ocr_project
-
-    # Or download and extract the ZIP file, then navigate into the directory
-    cd path\to\django_ocr_project
-    ```
-
-2.  **Start Redis Container:** Open Docker Desktop (ensure it's running) and start a Redis container in PowerShell:
-    ```powershell
-    docker run -d -p 6379:6379 --name my-redis redis:latest
-    ```
-    *   Verify it's running: `docker ps` (you should see `my-redis`).
-
-3.  **Create Virtual Environment:**
-    ```powershell
-    python -m venv venv
-    ```
-
-4.  **Activate Virtual Environment:**
-    ```powershell
-    .\venv\Scripts\Activate.ps1
-    ```
-    *(Your prompt should now start with `(venv)`)*
-
-5.  **Install Dependencies:**
-    ```powershell
-    pip install -r requirements.txt
-    ```
-    *(This includes Django, Celery, Redis client, OpenCV, PyTesseract, Google AI SDK, python-dotenv, and eventlet)*
-
-6.  **Configure Environment Variables:**
-    *   Rename the `.env.template` file to `.env`.
-    *   Open `.env` in a text editor and fill in the values:
-        *   `SECRET_KEY`: Generate a strong, unique secret key (e.g., using Python's `secrets` module or an online generator).
-        *   `DEBUG`: Set to `True` for development, `False` for production.
-        *   `ALLOWED_HOSTS`: Keep `127.0.0.1,localhost` for local development.
-        *   `GOOGLE_API_KEY`: Your API key obtained from [Google AI Studio](https://aistudio.google.com/app/apikey) or Google Cloud Console. Ensure the Gemini API is enabled.
-        *   `CELERY_BROKER_URL`: Should be `redis://127.0.0.1:6379/0` (using the IP address is recommended on Windows).
-        *   `CELERY_RESULT_BACKEND`: Should be `redis://127.0.0.1:6379/0`.
-        *   `TESSERACT_CMD`: The **full path** to your `tesseract.exe`. Use double backslashes (`\\`). Example: `C:\\Program Files\\Tesseract-OCR\\tesseract.exe`. Verify this path matches your installation.
-
-7.  **Database Migrations:** Apply the database schema:
-    ```powershell
-    python manage.py makemigrations core
-    python manage.py migrate
-    ```
-
-8.  **Create Superuser (Optional):** To access the Django admin interface (`/admin/`):
-    ```powershell
-    python manage.py createsuperuser
-    ```
-    *(Follow the prompts)*
-
-## Running the Application
-
-You need to run two processes simultaneously in separate PowerShell terminals (ensure the virtual environment is activated in both).
-
-1.  **Terminal 1: Start the Celery Worker:**
-    ```powershell
-    # Navigate to the project directory if needed
-    # Activate venv: .\venv\Scripts\Activate.ps1
-    celery -A config worker --loglevel=info -P eventlet
-    ```
-    *   The `-P eventlet` flag is crucial for running Celery smoothly on Windows.
-
-2.  **Terminal 2: Start the Django Development Server:**
-    ```powershell
-    # Navigate to the project directory if needed
-    # Activate venv: .\venv\Scripts\Activate.ps1
-    python manage.py runserver
-    ```
-
-## Usage
-
-1.  Ensure the Redis container, Celery worker, and Django server are all running.
-2.  Open your web browser and go to `http://127.0.0.1:8000/`.
-3.  Drag and drop image files onto the drop zone or click it to select files using the file browser.
-4.  Placeholders for each image will appear, showing the processing status.
-5.  Once an image is processed (`COMPLETED`), the extracted text will be displayed next to the image preview.
-6.  Use the "Copy Text" or "Download Text" buttons below the extracted text.
-7.  If processing fails (`FAILED`), an error message will be displayed. Check the Celery worker logs for more details.
+*   **Backend**: Python, Django
+*   **Asynchronous Tasks**: Celery, Redis
+*   **OCR**: PyTesseract, Tesseract-OCR Engine
+*   **Image Processing**: OpenCV-Python, Pillow
+*   **AI Model**: Google Gemini API (`google-generativeai`)
+*   **Frontend**: HTML, CSS (Bootstrap), JavaScript
+*   **Database**: SQLite (default, configurable in Django settings)
+*   **Environment Management**: `python-dotenv`
 
 ## Project Structure
 
 ```
 django_ocr_project/
-├── config/             # Django project configuration
-│   ├── __init__.py
-│   ├── settings.py     # Main settings
-│   ├── urls.py         # Root URL patterns
-│   ├── wsgi.py
-│   ├── asgi.py
-│   └── celery.py       # Celery app configuration
-├── core/               # Main application logic
-│   ├── __init__.py
-│   ├── admin.py        # Admin site configuration
-│   ├── apps.py
-│   ├── models.py       # Database models (ProcessedImage)
-│   ├── views.py        # View functions/classes
-│   ├── urls.py         # App-specific URL patterns
-│   ├── tasks.py        # Celery task definitions
-│   ├── services.py     # Business logic (preprocessing, OCR, Gemini)
-│   └── migrations/
-├── static/             # Static files (CSS, JS)
-│   └── js/
-│       └── upload.js   # Frontend logic
-│   └── css/
-│       └── style.css
+├── config/             # Django project settings, URLs, Celery config
+├── core/               # Main application logic (models, views, tasks, services)
+├── static/             # Static assets (CSS, JavaScript)
 ├── templates/          # HTML templates
-│   └── core/
-│       └── upload.html # Main upload page template
 ├── media/              # User uploaded files (created automatically)
-│   └── uploads/
 ├── manage.py           # Django management script
 ├── requirements.txt    # Python dependencies
-├── .env                # Environment variables (GITIGNORE this!)
-└── .env.template       # Template for .env file
+└── .env                # Environment variables (create from .env.template)
 ```
+
+## Setup and Installation
+
+1.  **Prerequisites**:
+    *   Python 3.10+
+    *   Tesseract-OCR Engine (installed and added to system PATH)
+    *   Redis Server (running, e.g., via Docker: `docker run -d -p 6379:6379 redis:latest`)
+    *   Google API Key with Gemini API enabled.
+
+2.  **Clone the Repository**:
+    ```bash
+    git clone <repository-url> django_ocr_project
+    cd django_ocr_project
+    ```
+
+3.  **Create and Activate Virtual Environment**:
+    ```bash
+    # Windows (PowerShell)
+    python -m venv venv
+    .\venv\Scripts\Activate.ps1
+
+    # macOS / Linux (Bash)
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+
+4.  **Install Dependencies**:
+    ```bash
+    pip install -r requirements.txt
+    ```
+    *(Note: On Windows, `eventlet` is included in `requirements.txt` for Celery compatibility.)*
+
+5.  **Configure Environment Variables**:
+    *   Copy `.env.template` to `.env`.
+    *   Edit the `.env` file and provide values for:
+        *   `SECRET_KEY` (Generate a secure key)
+        *   `GOOGLE_API_KEY`
+        *   `TESSERACT_CMD` (If Tesseract is not in the default PATH or installed in a non-standard location. Use double backslashes `\\` on Windows).
+        *   Verify `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND` point to your running Redis instance (use `redis://127.0.0.1:6379/0` if running locally).
+
+6.  **Database Migrations**:
+    ```bash
+    python manage.py makemigrations core
+    python manage.py migrate
+    ```
+
+7.  **Run Celery Worker**:
+    *   Open a new terminal, activate the virtual environment.
+    ```bash
+    # Windows (PowerShell)
+    celery -A config worker --loglevel=info -P eventlet
+
+    # macOS / Linux (Bash)
+    celery -A config worker --loglevel=info
+    ```
+
+8.  **Run Django Development Server**:
+    *   In the original terminal (virtual environment active).
+    ```bash
+    python manage.py runserver
+    ```
+
+## Usage
+
+1.  Ensure the Redis server, Celery worker, and Django development server are running.
+2.  Access the application in your web browser, typically at `http://127.0.0.1:8000/`.
+3.  Drag and drop image files onto the upload area or click to select files.
+4.  The application will upload the images and display processing status.
+5.  Once processing is complete, the enhanced text output will be shown alongside the image preview.
+6.  Use the "Copy Text" or "Download Text" buttons for the results.
+
+## Configuration
+
+Key configuration options are managed via environment variables in the `.env` file:
+
+*   `SECRET_KEY`: Django secret key.
+*   `DEBUG`: Django debug mode (True/False).
+*   `ALLOWED_HOSTS`: Allowed hostnames for the server.
+*   `GOOGLE_API_KEY`: API key for Google Gemini.
+*   `CELERY_BROKER_URL`: Connection URL for the Celery message broker (Redis).
+*   `CELERY_RESULT_BACKEND`: Connection URL for the Celery result backend (Redis).
+*   `TESSERACT_CMD`: Full path to the Tesseract executable if not in PATH.
